@@ -1,20 +1,21 @@
 import * as fs from "fs";
 import * as path from "path";
-import * as vscode from "vscode";
+import { NotebookManager } from "../notebook/notebookManager";
 
 export class NotebookEngine {
-  private workspaceRoot(): string {
-    const folder = vscode.workspace.workspaceFolders?.[0];
 
-    if (!folder) {
-      throw new Error("No workspace open");
-    }
+  private notebookRoot(): string {
 
-    return folder.uri.fsPath;
+    const nm = new NotebookManager();
+
+    nm.initialize();
+
+    return nm.getCurrentNotebookPath();
   }
 
   initializeNotebook() {
-    const root = this.workspaceRoot();
+
+    const root = this.notebookRoot();
 
     const notebookPath = path.join(root, "notebook.pnb");
 
@@ -36,16 +37,20 @@ export class NotebookEngine {
   }
 
   appendCell(cell: any) {
-    const root = this.workspaceRoot();
+
+    const root = this.notebookRoot();
 
     const notebookPath = path.join(root, "notebook.pnb");
     const tempPath = notebookPath + ".tmp";
+
     const notebook = JSON.parse(fs.readFileSync(notebookPath, "utf8"));
 
     notebook.cells.push(cell);
 
     const content = JSON.stringify(notebook, null, 2);
+
     fs.writeFileSync(tempPath, content);
+
     fs.renameSync(tempPath, notebookPath);
   }
 }

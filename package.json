@@ -14,6 +14,10 @@
   "contributes": {
     "commands": [
       {
+        "command": "pact.createPrompt",
+        "title": "PACT: Create Prompt"
+      },
+      {
         "command": "pact.executePrompt",
         "title": "PACT: Execute Prompt"
       },
@@ -24,6 +28,30 @@
       {
         "command": "pact.showNotebook",
         "title": "PACT: Show Notebook"
+      },
+      {
+        "command": "pact.openNotebook",
+        "title": "PACT: Open Notebook"
+      },
+      {
+        "command": "pact.saveDraft",
+        "title": "PACT: Save Draft"
+      },
+      {
+        "command": "pact.loadDraft",
+        "title": "PACT: Load Draft"
+      },
+      {
+        "command": "pact.newNotebook",
+        "title": "PACT: New Notebook"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "pact.executePrompt",
+        "key": "cmd+enter",
+        "mac": "cmd+enter",
+        "when": "editorTextFocus"
       }
     ]
   },

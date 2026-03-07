@@ -98,4 +98,25 @@ export class ExecutionEngine {
 
     await this.executePrompt(prompt);
   }
+
+  async approveProposalFile(fileName: string): Promise<void> {
+    const ws = vscode.workspace.workspaceFolders?.[0];
+    if (!ws) {
+      throw new Error("No workspace open.");
+    }
+
+    const root = ws.uri.fsPath;
+    const proposalPath = path.join(root, "artifacts/proposals", fileName);
+
+    const proposal = JSON.parse(fs.readFileSync(proposalPath, "utf8"));
+    const prompt = proposal.proposal as string;
+
+    // mark approved
+    proposal.status = "APPROVED";
+    proposal.approved_timestamp = new Date().toISOString();
+    fs.writeFileSync(proposalPath, JSON.stringify(proposal, null, 2));
+
+    // execute as new cell
+    await this.executePrompt(prompt);
+  }
 }

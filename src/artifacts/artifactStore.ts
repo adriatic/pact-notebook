@@ -1,17 +1,17 @@
 import * as fs from "fs";
 import * as path from "path";
-import * as vscode from "vscode";
 import { randomUUID } from "crypto";
+import { NotebookManager } from "../notebook/notebookManager";
 
 export class ArtifactStore {
-  private workspaceRoot(): string {
-    const folder = vscode.workspace.workspaceFolders?.[0];
 
-    if (!folder) {
-      throw new Error("No workspace open");
-    }
+  private notebookRoot(): string {
 
-    return folder.uri.fsPath;
+    const nm = new NotebookManager();
+
+    nm.initialize();
+
+    return nm.getCurrentNotebookPath();
   }
 
   private ensureDir(dir: string) {
@@ -21,7 +21,8 @@ export class ArtifactStore {
   }
 
   initialize() {
-    const root = this.workspaceRoot();
+
+    const root = this.notebookRoot();
 
     const artifacts = path.join(root, "artifacts");
 
@@ -30,12 +31,14 @@ export class ArtifactStore {
     this.ensureDir(path.join(artifacts, "moderation"));
     this.ensureDir(path.join(artifacts, "instrumentation"));
     this.ensureDir(path.join(artifacts, "proposals"));
+    this.ensureDir(path.join(artifacts, "drafts"));
   }
 
   createPromptArtifact(prompt: string) {
+
     const id = randomUUID();
 
-    const root = this.workspaceRoot();
+    const root = this.notebookRoot();
 
     const file = path.join(root, "artifacts/prompts", `${id}.json`);
 
@@ -51,7 +54,8 @@ export class ArtifactStore {
   }
 
   createResponseArtifact(id: string, response: string) {
-    const root = this.workspaceRoot();
+
+    const root = this.notebookRoot();
 
     const file = path.join(root, "artifacts/responses", `${id}.json`);
 
@@ -65,7 +69,8 @@ export class ArtifactStore {
   }
 
   createModerationArtifact(id: string, status: string) {
-    const root = this.workspaceRoot();
+
+    const root = this.notebookRoot();
 
     const file = path.join(root, "artifacts/moderation", `${id}.json`);
 
@@ -79,7 +84,8 @@ export class ArtifactStore {
   }
 
   createInstrumentationArtifact(id: string, startTime: number) {
-    const root = this.workspaceRoot();
+
+    const root = this.notebookRoot();
 
     const file = path.join(root, "artifacts/instrumentation", `${id}.json`);
 
@@ -96,7 +102,8 @@ export class ArtifactStore {
   }
 
   createProposalArtifact(cellId: string, proposalText: string) {
-    const root = this.workspaceRoot();
+
+    const root = this.notebookRoot();
 
     const file = path.join(root, "artifacts/proposals", `${cellId}.json`);
 
@@ -108,5 +115,25 @@ export class ArtifactStore {
     };
 
     fs.writeFileSync(file, JSON.stringify(artifact, null, 2));
+  }
+
+  createDraftArtifact(text: string): string {
+
+    const id = randomUUID();
+
+    const draft = {
+      draft_id: id,
+      text,
+      timestamp: new Date().toISOString(),
+      status: "DRAFT"
+    };
+
+    const root = this.notebookRoot();
+
+    const file = path.join(root, "artifacts/drafts", `${id}.json`);
+
+    fs.writeFileSync(file, JSON.stringify(draft, null, 2));
+
+    return id;
   }
 }
