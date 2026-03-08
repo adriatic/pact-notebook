@@ -1,0 +1,99 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #1e1e1e;
+  color: #ddd;
+  margin: 0;
+  padding: 10px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+}
+
+.title {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+/* button grid */
+
+.buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+button {
+  width: 100%;
+  padding: 7px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #2d2d2d;
+  color: #eee;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.12s ease;
+}
+
+button:hover {
+  background: #3b3b3b;
+  border-color: #6aa0ff;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #d0d0d0;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4caf50;
+    margin-right: 8px;
+    box-shadow: 0 0 4px rgba(76, 175, 80, 0.7);
+}
+
+/* animated state */
+
+.running {
+  background: #ff9800;
+  animation: pulse 1s infinite;
+}
+
+.navigator {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 13px;
+}
+
+.navButtons {
+    display: flex;
+    gap: 4px;
+}
+
+.navButtons button {
+    width: 28px;
+    height: 24px;
+    padding: 0;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 1;
+  }
+}

@@ -12,6 +12,27 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
+
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pact",
+          "title": "PACT",
+          "icon": "media/pact.svg"
+        }
+      ]
+    },
+
+    "views": {
+      "pact": [
+        {
+          "type": "webview",
+          "id": "pact.controlPanel",
+          "name": "Control Panel",
+          "icon": "media/pact.svg"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "pact.createPrompt",
@@ -44,6 +65,22 @@
       {
         "command": "pact.newNotebook",
         "title": "PACT: New Notebook"
+      },
+      {
+        "command": "pact.runCell",
+        "title": "PACT: Run Cell"
+      },
+      {
+        "command": "pact.runAll",
+        "title": "PACT: Run All Cells"
+      },
+      {
+        "command": "pact.clearOutput",
+        "title": "PACT: Clear Output"
+      },
+      {
+        "command": "pact.showLedger",
+        "title": "PACT: Show Ledger"
       }
     ],
     "keybindings": [
@@ -55,6 +92,7 @@
       }
     ]
   },
+  
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
