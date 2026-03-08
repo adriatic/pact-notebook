@@ -101,8 +101,13 @@ class ControlPanelProvider implements vscode.WebviewViewProvider {
 
           let next = current + msg.direction;
 
-          if (next < 1) next = 1;
-          if (next > total) next = total;
+          if (next < 1) {
+            next = 1;
+          }
+
+          if (next > total) {
+            next = total;
+          }
 
           this.notebookState.setCurrentCell(next);
 
