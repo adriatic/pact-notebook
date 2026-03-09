@@ -1,114 +1,40 @@
 {
-  "name": "pact-host",
-  "displayName": "pact-host",
-  "description": "vscode extension implementing PACT",
+  "name": "pact-notebook",
+  "displayName": "PACT Notebook",
+  "description": "PACT AI Notebook",
   "version": "0.0.1",
+  "publisher": "pact",
   "engines": {
-    "vscode": "^1.109.0"
+    "vscode": "^1.85.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished",
+    "workspaceContains:**/notebooks"
+  ],
   "main": "./out/extension.js",
   "contributes": {
-
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "pact",
-          "title": "PACT",
-          "icon": "media/pact.svg"
-        }
-      ]
-    },
-
     "views": {
-      "pact": [
+      "explorer": [
         {
-          "type": "webview",
           "id": "pact.controlPanel",
-          "name": "Control Panel",
+          "name": "PACT Control",
+          "type": "webview",
           "icon": "media/pact.svg"
         }
       ]
-    },
-    "commands": [
-      {
-        "command": "pact.createPrompt",
-        "title": "PACT: Create Prompt"
-      },
-      {
-        "command": "pact.executePrompt",
-        "title": "PACT: Execute Prompt"
-      },
-      {
-        "command": "pact.approveProposal",
-        "title": "PACT: Approve Proposal"
-      },
-      {
-        "command": "pact.showNotebook",
-        "title": "PACT: Show Notebook"
-      },
-      {
-        "command": "pact.openNotebook",
-        "title": "PACT: Open Notebook"
-      },
-      {
-        "command": "pact.saveDraft",
-        "title": "PACT: Save Draft"
-      },
-      {
-        "command": "pact.loadDraft",
-        "title": "PACT: Load Draft"
-      },
-      {
-        "command": "pact.newNotebook",
-        "title": "PACT: New Notebook"
-      },
-      {
-        "command": "pact.runCell",
-        "title": "PACT: Run Cell"
-      },
-      {
-        "command": "pact.runAll",
-        "title": "PACT: Run All Cells"
-      },
-      {
-        "command": "pact.clearOutput",
-        "title": "PACT: Clear Output"
-      },
-      {
-        "command": "pact.showLedger",
-        "title": "PACT: Show Ledger"
-      }
-    ],
-    "keybindings": [
-      {
-        "command": "pact.executePrompt",
-        "key": "cmd+enter",
-        "mac": "cmd+enter",
-        "when": "editorTextFocus"
-      }
-    ]
+    }
   },
-  
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src",
-    "test": "vscode-test"
+    "watch": "tsc -watch -p ./"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
-    "@types/node": "22.x",
-    "@types/vscode": "^1.109.0",
-    "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2",
-    "eslint": "^9.39.3",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.1"
+    "@types/node": "^18.18.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
   }
 }

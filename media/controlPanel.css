@@ -1,99 +1,82 @@
 body {
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #1e1e1e;
-  color: #ddd;
-  margin: 0;
+  font-family: var(--vscode-font-family);
+  color: var(--vscode-foreground);
   padding: 10px;
+  margin: 0;
 }
 
 .panel {
   display: flex;
   flex-direction: column;
-  padding: 14px;
+  gap: 8px;
 }
 
 .title {
-  font-size: 14px;
-  margin-bottom: 8px;
+  font-size: 18px;
+  font-weight: 600;
 }
 
-/* button grid */
+/* notebook name line */
 
-.buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.notebookName {
+  font-size: 14px;
+}
+
+/* cell navigation line */
+
+.navigator {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+#cellLabel {
+  font-size: 14px;
+}
+
+/* arrow buttons */
+
+.navButtons {
+  display: flex;
   gap: 6px;
 }
 
-button {
-  width: 100%;
-  padding: 7px;
-  border-radius: 6px;
-  border: 1px solid #444;
-  background: #2d2d2d;
-  color: #eee;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.12s ease;
+.navButtons button {
+  width: 30px;
+  height: 26px;
 }
 
-button:hover {
-  background: #3b3b3b;
-  border-color: #6aa0ff;
-}
+/* status */
 
 .status {
   display: flex;
   align-items: center;
-  margin-bottom: 12px;
-  font-size: 13px;
-  color: #d0d0d0;
+  gap: 8px;
+  margin-top: 6px;
 }
 
 .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #4caf50;
-    margin-right: 8px;
-    box-shadow: 0 0 4px rgba(76, 175, 80, 0.7);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #4caf50;
 }
 
-/* animated state */
-
-.running {
-  background: #ff9800;
-  animation: pulse 1s infinite;
+.dot.running {
+  background-color: orange;
 }
 
-.navigator {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-    font-size: 13px;
+/* action buttons */
+
+.buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
 }
 
-.navButtons {
-    display: flex;
-    gap: 4px;
-}
-
-.navButtons button {
-    width: 28px;
-    height: 24px;
-    padding: 0;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
-  100% {
-    opacity: 1;
-  }
+.buttons button {
+  height: 36px;
+  white-space: nowrap;
 }

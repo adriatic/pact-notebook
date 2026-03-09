@@ -1,44 +1,41 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<head>
-  <meta charset="UTF-8">
-  <link rel="stylesheet" href="{{css}}" />
-</head>
+    <link rel="stylesheet" href="{{css}}" />
+    <title>PACT Control</title>
+  </head>
 
-<body>
+  <body>
+    <div class="panel">
+      <div class="title">PACT Control</div>
 
-  <div class="panel">
+      <div id="notebookName" class="notebookName"></div>
 
-    <div class="title">PACT Control</div>
+      <div class="navigator">
+        <div id="cellLabel">Cell 1 / 1</div>
 
-    <div class="navigator">
-
-      <span id="cellLabel">Cell 1 / 1</span>
-
-      <div class="navButtons">
-        <button id="prevCell">←</button>
-        <button id="nextCell">→</button>
+        <div class="navButtons">
+          <button id="prevCell">←</button>
+          <button id="nextCell">→</button>
+        </div>
       </div>
 
+      <div class="status">
+        <span id="statusDot" class="dot"></span>
+        <span id="statusText">Ready</span>
+      </div>
+
+      <div class="buttons">
+        <button id="runCell">Run Cell</button>
+        <button id="runAll">Run All</button>
+        <button id="clearOutput">Clear Output</button>
+        <button id="showLedger">Ledger</button>
+      </div>
     </div>
 
-    <div class="status">
-      <span class="dot" id="statusDot"></span>
-      <span id="statusText">Ready</span>
-    </div>
-
-    <div class="buttons">
-      <button id="runCell">Run Cell</button>
-      <button id="runAll">Run All</button>
-      <button id="clearOutput">Clear Output</button>
-      <button id="showLedger">Ledger</button>
-    </div>
-
-  </div>
-
-  <script src="{{js}}"></script>
-
-</body>
-
+    <script src="{{js}}"></script>
+  </body>
 </html>

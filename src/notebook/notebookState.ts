@@ -1,7 +1,7 @@
 export class NotebookState {
   private activeNotebook: string | null = null;
   private currentCell: number = 1;
-  private totalCells: number = 12;
+  private totalCells: number = 1;
 
   setActiveNotebook(id: string) {
     this.activeNotebook = id;
@@ -18,6 +18,10 @@ export class NotebookState {
 
   getCurrentCell(): number {
     return this.currentCell;
+  }
+
+  setTotalCells(total: number) {
+    this.totalCells = total;
   }
 
   getTotalCells(): number {

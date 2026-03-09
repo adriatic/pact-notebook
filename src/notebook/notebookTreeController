@@ -1,0 +1,64 @@
+import * as vscode from "vscode";
+import * as fs from "fs";
+import * as path from "path";
+
+import { NotebookState } from "./notebookState";
+
+export class NotebookTreeController implements vscode.TreeDataProvider<string> {
+  private _onDidChangeTreeData: vscode.EventEmitter<string | undefined> =
+    new vscode.EventEmitter<string | undefined>();
+
+  readonly onDidChangeTreeData: vscode.Event<string | undefined> =
+    this._onDidChangeTreeData.event;
+
+  private rootPath: string;
+  private state: NotebookState;
+
+  constructor(context: vscode.ExtensionContext, state: NotebookState) {
+    this.rootPath = path.join(context.extensionPath, "notebooks");
+    this.state = state;
+  }
+
+  refresh(): void {
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
+  getTreeItem(element: string): vscode.TreeItem {
+    const item = new vscode.TreeItem(element);
+
+    item.command = {
+      command: "pact.selectCell",
+      title: "Select Cell",
+      arguments: [element],
+    };
+
+    return item;
+  }
+
+  getChildren(): Thenable<string[]> {
+    const notebook = this.state.getActiveNotebook();
+
+    if (!notebook) {
+      return Promise.resolve([]);
+    }
+
+    const promptsPath = path.join(
+      this.rootPath,
+      notebook,
+      "artifacts",
+      "prompts",
+    );
+
+    if (!fs.existsSync(promptsPath)) {
+      return Promise.resolve([]);
+    }
+
+    const files = fs.readdirSync(promptsPath);
+
+    const cells = files
+      .filter((f) => f.endsWith(".json"))
+      .map((f, i) => (i + 1).toString());
+
+    return Promise.resolve(cells);
+  }
+}
