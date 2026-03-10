@@ -1,122 +1,49 @@
-import * as fs from "fs";
-import * as path from "path";
-import * as vscode from "vscode";
-import { MockLLM } from "../llm/mockLLM";
-import { Moderator } from "../moderator/moderator";
-import { ArtifactStore } from "../artifacts/artifactStore";
-import { NotebookEngine } from "../notebook/notebookEngine";
+import { PromptBuilder } from "./PromptBuilder";
+import { SignalInspector } from "./SignalInspector";
+import { Cell } from "../notebook/Cell";
+import { EventBus } from "../runtime/EventBus";
+import { LLMAdapter } from "../adapters/LLMAdapter";
 
 export class ExecutionEngine {
-  private llm: MockLLM;
-  private moderator: Moderator;
-  private artifacts: ArtifactStore;
-  private notebook: NotebookEngine;
+  private eventBus: EventBus;
+  private adapter: LLMAdapter;
 
-  constructor() {
-    this.llm = new MockLLM();
-    this.moderator = new Moderator();
-    this.artifacts = new ArtifactStore();
-    this.notebook = new NotebookEngine();
+  constructor(eventBus: EventBus, adapter: LLMAdapter) {
+    this.eventBus = eventBus;
+    this.adapter = adapter;
   }
 
-  async executePrompt(prompt: string): Promise<string> {
-    this.artifacts.initialize();
-    this.notebook.initializeNotebook();
+  async run(cell: Cell): Promise<void> {
+    cell.status = "running";
 
-    const startTime = Date.now();
-
-    const cellId = this.artifacts.createPromptArtifact(prompt);
-
-    const moderation = this.moderator.checkPrompt(prompt);
-
-    this.artifacts.createModerationArtifact(cellId, moderation.status);
-
-    if (moderation.status === "BLOCK") {
-      return "Prompt blocked by moderator.";
-    }
-
-    const response = await this.llm.generateResponse(prompt);
-
-    const proposalMarker = "Suggested next prompt:";
-
-    if (response.includes(proposalMarker)) {
-      const proposal = response.split(proposalMarker)[1].trim();
-
-      this.artifacts.createProposalArtifact(cellId, proposal);
-    }
-    this.artifacts.createResponseArtifact(cellId, response);
-
-    this.artifacts.createInstrumentationArtifact(cellId, startTime);
-
-    this.notebook.appendCell({
-      cell_id: cellId,
-      state: "COMPLETED",
-
-      prompt_ref: `artifacts/prompts/${cellId}.json`,
-      response_ref: `artifacts/responses/${cellId}.json`,
-      moderation_ref: `artifacts/moderation/${cellId}.json`,
-      instrumentation_ref: `artifacts/instrumentation/${cellId}.json`,
+    this.eventBus.emit({
+      type: "execution_started",
+      cell: cell.id,
     });
 
-    return response;
-  }
+    const signal = SignalInspector.inspect(cell);
 
-  async approveProposal(): Promise<void> {
-    const workspace = vscode.workspace.workspaceFolders?.[0];
-
-    if (!workspace) {
-      vscode.window.showErrorMessage("No workspace open.");
+    if (signal) {
       return;
     }
 
-    const proposalsDir = path.join(workspace.uri.fsPath, "artifacts/proposals");
+    const prompt = PromptBuilder.build(cell);
 
-    const files = fs.readdirSync(proposalsDir);
+    const response = await this.adapter.invoke(prompt);
 
-    if (files.length === 0) {
-      vscode.window.showInformationMessage("No proposals available.");
-      return;
-    }
+    cell.response = response;
+    cell.model = "mock-llm";
+    cell.timestamp = Date.now();
+    cell.status = "completed";
 
-    const pick = await vscode.window.showQuickPick(files);
+    this.eventBus.emit({
+      type: "cell_updated",
+      cell: cell,
+    });
 
-    if (!pick) {
-      return;
-    }
-
-    const proposalPath = path.join(proposalsDir, pick);
-
-    const proposal = JSON.parse(fs.readFileSync(proposalPath, "utf8"));
-
-    const prompt = proposal.proposal;
-
-    // mark proposal as approved
-    proposal.status = "APPROVED";
-    proposal.approved_timestamp = new Date().toISOString();
-
-    fs.writeFileSync(proposalPath, JSON.stringify(proposal, null, 2));
-
-    await this.executePrompt(prompt);
-  }
-
-  async approveProposalFile(fileName: string): Promise<void> {
-    const ws = vscode.workspace.workspaceFolders?.[0];
-    if (!ws) {
-      throw new Error("No workspace open.");
-    }
-
-    const root = ws.uri.fsPath;
-    const proposalPath = path.join(root, "artifacts/proposals", fileName);
-
-    const proposal = JSON.parse(fs.readFileSync(proposalPath, "utf8"));
-    const prompt = proposal.proposal as string;
-
-    // mark approved
-    proposal.status = "APPROVED";
-    proposal.approved_timestamp = new Date().toISOString();
-    fs.writeFileSync(proposalPath, JSON.stringify(proposal, null, 2));
-
-    // execute as new cell
-    await this.executePrompt(prompt);
+    this.eventBus.emit({
+      type: "execution_completed",
+      cell: cell.id,
+    });
   }
 }

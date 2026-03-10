@@ -277,7 +277,6 @@ document.querySelectorAll("button[data-propfile]").forEach(btn => {
 }
 
 export function openNotebookWebview(context: vscode.ExtensionContext) {
-
   const panel = vscode.window.createWebviewPanel(
     "pactNotebook",
     "PACT Notebook",
@@ -296,17 +295,9 @@ export function openNotebookWebview(context: vscode.ExtensionContext) {
   refresh();
 
   panel.webview.onDidReceiveMessage(async (msg) => {
-
     if (msg?.type === "approveProposalFile") {
-
-      const engine = new ExecutionEngine();
-
-      await engine.approveProposalFile(msg.file);
-
       refresh();
-
     }
-
   });
 
   const watcher = vscode.workspace.createFileSystemWatcher("**/notebook.pnb");

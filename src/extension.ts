@@ -154,6 +154,18 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand("pact.runCell", async () => {
+      vscode.window.showInformationMessage("PACT: Run Cell");
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("pact.runAll", async () => {
+      vscode.window.showInformationMessage("PACT: Run All");
+    }),
+  );
+
   vscode.window.onDidChangeActiveTextEditor((editor) => {
     if (editor !== undefined) {
       updateNotebookState(editor, notebookState, controlPanel);
@@ -172,6 +184,14 @@ export function activate(context: vscode.ExtensionContext): void {
 
   if (editor !== undefined) {
     updateNotebookState(editor, notebookState, controlPanel);
+  } else {
+    setTimeout(() => {
+      const active = vscode.window.activeTextEditor;
+
+      if (active !== undefined) {
+        updateNotebookState(active, notebookState, controlPanel);
+      }
+    }, 100);
   }
 }
 

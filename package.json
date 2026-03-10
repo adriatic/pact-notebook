@@ -12,10 +12,17 @@
   ],
   "activationEvents": [
     "onStartupFinished",
-    "workspaceContains:**/notebooks"
+    "workspaceContains:**/notebooks",
+    "onCommand:pact.runCell"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "pact.runCell",
+        "title": "PACT: Run Cell"
+      }
+    ],
     "views": {
       "explorer": [
         {
