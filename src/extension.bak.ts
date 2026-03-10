@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { randomUUID } from "crypto";
 
 import { NotebookState } from "./notebook/notebookState";
 
@@ -91,6 +90,7 @@ class ControlPanelProvider implements vscode.WebviewViewProvider {
 
 export function activate(context: vscode.ExtensionContext): void {
   const notebookState = new NotebookState();
+
   const controlPanel = new ControlPanelProvider(context, notebookState);
 
   context.subscriptions.push(
@@ -100,22 +100,27 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
   );
 
-  // Navigate cells
-
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "pact.navigateCell",
       async (direction: number) => {
         const state = notebookState.getState();
 
-        if (!state.notebook) return;
+        if (!state.notebook) {
+          return;
+        }
 
         const target = state.cell + direction;
 
-        if (target < 1 || target > state.totalCells) return;
+        if (target < 1 || target > state.totalCells) {
+          return;
+        }
 
         const workspace = vscode.workspace.workspaceFolders?.[0];
-        if (!workspace) return;
+
+        if (!workspace) {
+          return;
+        }
 
         const promptsPath = path.join(
           workspace.uri.fsPath,
@@ -125,7 +130,9 @@ export function activate(context: vscode.ExtensionContext): void {
           "prompts",
         );
 
-        if (!fs.existsSync(promptsPath)) return;
+        if (!fs.existsSync(promptsPath)) {
+          return;
+        }
 
         const files = fs
           .readdirSync(promptsPath)
@@ -133,74 +140,23 @@ export function activate(context: vscode.ExtensionContext): void {
           .sort();
 
         const targetFile = files[target - 1];
-        if (!targetFile) return;
+
+        if (!targetFile) {
+          return;
+        }
 
         const fileUri = vscode.Uri.file(path.join(promptsPath, targetFile));
 
         const doc = await vscode.workspace.openTextDocument(fileUri);
+
         await vscode.window.showTextDocument(doc);
       },
     ),
   );
 
-  // Run Cell (Execution)
-
   context.subscriptions.push(
     vscode.commands.registerCommand("pact.runCell", async () => {
-      const state = notebookState.getState();
-      if (!state.notebook) return;
-
-      const workspace = vscode.workspace.workspaceFolders?.[0];
-      if (!workspace) return;
-
-      const promptsPath = path.join(
-        workspace.uri.fsPath,
-        "notebooks",
-        state.notebook,
-        "artifacts",
-        "prompts",
-      );
-
-      const responsesPath = path.join(
-        workspace.uri.fsPath,
-        "notebooks",
-        state.notebook,
-        "artifacts",
-        "responses",
-      );
-
-      if (!fs.existsSync(responsesPath)) {
-        fs.mkdirSync(responsesPath, { recursive: true });
-      }
-
-      const promptFiles = fs
-        .readdirSync(promptsPath)
-        .filter((f) => f.endsWith(".json"))
-        .sort();
-
-      const promptFile = promptFiles[state.cell - 1];
-      if (!promptFile) return;
-
-      const promptPath = path.join(promptsPath, promptFile);
-
-      const promptData = JSON.parse(fs.readFileSync(promptPath, "utf8"));
-
-      const promptText = promptData.text || "";
-
-      const response = {
-        cell_id: promptData.cell_id,
-        content: `Mock response to: "${promptText}"`,
-        timestamp: new Date().toISOString(),
-      };
-
-      const responseId = randomUUID();
-
-      const responsePath = path.join(responsesPath, `${responseId}.json`);
-
-      fs.writeFileSync(responsePath, JSON.stringify(response, null, 2));
-
-      const doc = await vscode.workspace.openTextDocument(responsePath);
-      await vscode.window.showTextDocument(doc);
+      vscode.window.showInformationMessage("PACT: Run Cell");
     }),
   );
 
@@ -228,6 +184,14 @@ export function activate(context: vscode.ExtensionContext): void {
 
   if (editor !== undefined) {
     updateNotebookState(editor, notebookState, controlPanel);
+  } else {
+    setTimeout(() => {
+      const active = vscode.window.activeTextEditor;
+
+      if (active !== undefined) {
+        updateNotebookState(active, notebookState, controlPanel);
+      }
+    }, 100);
   }
 }
 
@@ -240,41 +204,45 @@ function updateNotebookState(
 
   if (filePath.includes("artifacts")) {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    if (!workspaceFolder) return;
 
-    const workspace = workspaceFolder.uri.fsPath;
-    const parts = filePath.split(path.sep);
-    const notebooksIndex = parts.indexOf("notebooks");
+    if (workspaceFolder !== undefined) {
+      const workspace = workspaceFolder.uri.fsPath;
 
-    if (notebooksIndex !== -1) {
-      const notebookName = parts[notebooksIndex + 1];
+      const parts = filePath.split(path.sep);
 
-      notebookState.setActiveNotebook(notebookName);
+      const notebooksIndex = parts.indexOf("notebooks");
 
-      const promptsPath = path.join(
-        workspace,
-        "notebooks",
-        notebookName,
-        "artifacts",
-        "prompts",
-      );
+      if (notebooksIndex !== -1) {
+        const notebookName = parts[notebooksIndex + 1];
 
-      if (fs.existsSync(promptsPath)) {
-        const files = fs
-          .readdirSync(promptsPath)
-          .filter((f) => f.endsWith(".json"))
-          .sort();
+        notebookState.setActiveNotebook(notebookName);
 
-        notebookState.setTotalCells(files.length);
+        const promptsPath = path.join(
+          workspace,
+          "notebooks",
+          notebookName,
+          "artifacts",
+          "prompts",
+        );
 
-        const openedFile = path.basename(filePath);
-        const index = files.indexOf(openedFile);
+        if (fs.existsSync(promptsPath)) {
+          const files = fs
+            .readdirSync(promptsPath)
+            .filter((f) => f.endsWith(".json"))
+            .sort();
 
-        if (index !== -1) {
-          notebookState.setCurrentCell(index + 1);
+          notebookState.setTotalCells(files.length);
+
+          const openedFile = path.basename(filePath);
+
+          const index = files.indexOf(openedFile);
+
+          if (index !== -1) {
+            notebookState.setCurrentCell(index + 1);
+          }
+
+          controlPanel.pushState();
         }
-
-        controlPanel.pushState();
       }
     }
   }

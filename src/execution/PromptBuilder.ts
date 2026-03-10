@@ -1,7 +1,13 @@
-import { Cell } from "../notebook/Cell";
-
 export class PromptBuilder {
-  static build(cell: Cell): string {
-    return cell.prompt;
+
+  static build(promptText: string): string {
+
+    // For now PACT simply forwards the prompt.
+    // Later this will assemble context, overlays,
+    // notebook history, etc.
+
+    return promptText;
+
   }
+
 }
