@@ -1,283 +1,349 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { randomUUID } from "crypto";
 
-import { NotebookState } from "./notebook/notebookState";
+import { PactPaths } from "./schema/pactPaths";
 
-let cachedHtml: string | null = null;
+// ---------- STATE ----------
 
-function getHtml(
-  webview: vscode.Webview,
-  context: vscode.ExtensionContext,
-): string {
-  if (cachedHtml !== null) {
-    return cachedHtml;
+const STATE = {
+  notebook: "",
+  index: 0
+};
+
+let TREE: vscode.TreeView<Item>;
+
+// ---------- CONTENT PROVIDER ----------
+
+class PactContentProvider implements vscode.TextDocumentContentProvider {
+  private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
+  onDidChange = this._onDidChange.event;
+
+  private content = "";
+
+  setContent(text: string, uri: vscode.Uri) {
+    this.content = text;
+    this._onDidChange.fire(uri);
   }
 
-  const htmlPath = path.join(
-    context.extensionPath,
-    "media",
-    "controlPanel.html",
-  );
-
-  let html = fs.readFileSync(htmlPath, "utf8");
-
-  const cssUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(context.extensionUri, "media", "controlPanel.css"),
-  );
-
-  const jsUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(context.extensionUri, "media", "controlPanel.js"),
-  );
-
-  html = html.replace("{{css}}", cssUri.toString());
-  html = html.replace("{{js}}", jsUri.toString());
-
-  cachedHtml = html;
-
-  return html;
+  provideTextDocumentContent(): string {
+    return this.content;
+  }
 }
 
-class ControlPanelProvider implements vscode.WebviewViewProvider {
-  private view: vscode.WebviewView | undefined;
-  private notebookState: NotebookState;
+const provider = new PactContentProvider();
+
+// ---------- ACTIVATE ----------
+
+export function activate(context: vscode.ExtensionContext) {
+  const root = vscode.workspace.workspaceFolders?.[0].uri.fsPath!;
+  const paths = new PactPaths(root);
+
+  vscode.workspace.registerTextDocumentContentProvider("pact", provider);
+
+  const explorer = new PactExplorerProvider(paths);
+
+  TREE = vscode.window.createTreeView("pactExplorer", {
+    treeDataProvider: explorer
+  });
+
+  const control = new PactControlProvider(paths, explorer);
+
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider("pact.controlPanel", control)
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("pact.openPrompt", async (file: string) => {
+      const notebook = getNotebook(file);
+      const list = getPromptList(paths, notebook);
+
+      STATE.notebook = notebook;
+      STATE.index = list.indexOf(file);
+
+      await openPrompt(file);
+
+      explorer.reveal(file);
+      control.render();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("pact.selectNotebook", async (name: string) => {
+      STATE.notebook = name;
+      STATE.index = 0;
+
+      const list = getPromptList(paths, name);
+
+      if (list.length > 0) {
+        await openPrompt(list[0]);
+        explorer.reveal(list[0]);
+      }
+
+      control.render();
+    })
+  );
+}
+
+// ---------- CONTROL ----------
+
+class PactControlProvider implements vscode.WebviewViewProvider {
+  private view?: vscode.WebviewView;
 
   constructor(
-    private context: vscode.ExtensionContext,
-    state: NotebookState,
-  ) {
-    this.notebookState = state;
-  }
+    private paths: PactPaths,
+    private explorer: PactExplorerProvider
+  ) {}
 
-  resolveWebviewView(view: vscode.WebviewView): void {
+  resolveWebviewView(view: vscode.WebviewView) {
     this.view = view;
 
-    view.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [
-        vscode.Uri.joinPath(this.context.extensionUri, "media"),
-      ],
-    };
+    view.webview.options = { enableScripts: true };
 
-    view.webview.html = getHtml(view.webview, this.context);
+    view.webview.onDidReceiveMessage(msg => {
+      if (msg.cmd === "prev") this.move(-1);
+      if (msg.cmd === "next") this.move(1);
+      if (msg.cmd === "run") this.run();
+    });
 
-    this.pushState();
+    this.render();
+  }
 
-    view.webview.onDidReceiveMessage((msg) => {
-      if (msg.command === "navigateCell") {
-        vscode.commands.executeCommand("pact.navigateCell", msg.direction);
-      }
+  render() {
+    if (!this.view) return;
 
-      if (msg.command === "runCell") {
-        vscode.commands.executeCommand("pact.runCell");
-      }
+    const list = getPromptList(this.paths, STATE.notebook);
 
-      if (msg.command === "runAll") {
-        vscode.commands.executeCommand("pact.runAll");
-      }
+    const atStart = STATE.index <= 0;
+    const atEnd = STATE.index >= list.length - 1;
+
+    const seq = pad(STATE.index + 1);
+
+    this.view.webview.html = `
+      <body style="font-family:sans-serif;padding:10px;">
+        <h2>PACT Control</h2>
+
+        <div style="display:flex;justify-content:space-between;">
+          <span>${STATE.notebook}</span>
+          <span style="color:green;">●</span>
+        </div>
+
+        <div>prompt-${seq} / ${list.length}</div>
+
+        <button ${atStart ? "disabled" : ""} onclick="send('prev')">←</button>
+        <button ${atEnd ? "disabled" : ""} onclick="send('next')">→</button>
+
+        <br/><br/>
+
+        <button onclick="send('run')">Run Prompt</button>
+
+        <script>
+          const vscode = acquireVsCodeApi();
+          function send(cmd){ vscode.postMessage({cmd}); }
+        </script>
+      </body>
+    `;
+  }
+
+  private async move(delta: number) {
+    const list = getPromptList(this.paths, STATE.notebook);
+    if (list.length === 0) return;
+
+    const next = STATE.index + delta;
+
+    if (next < 0 || next >= list.length) return;
+
+    STATE.index = next;
+
+    const file = list[next];
+
+    await openPrompt(file);
+    this.explorer.reveal(file);
+
+    this.render();
+  }
+
+  private async run() {
+    const seq = pad(STATE.index + 1);
+
+    const responsesDir = path.join(
+      this.paths.notebook(STATE.notebook),
+      "artifacts",
+      "responses"
+    );
+
+    fs.mkdirSync(responsesDir, { recursive: true });
+
+    const file = path.join(responsesDir, `response-${seq}.json`);
+
+    fs.writeFileSync(
+      file,
+      JSON.stringify(
+        {
+          sequence: seq,
+          text: "Mock response",
+          timestamp: new Date().toISOString()
+        },
+        null,
+        2
+      )
+    );
+
+    await openResponse(file);
+
+    this.explorer.refresh();
+    this.explorer.reveal(file);
+  }
+}
+
+// ---------- EXPLORER ----------
+
+class PactExplorerProvider implements vscode.TreeDataProvider<Item> {
+  private _onDidChangeTreeData = new vscode.EventEmitter<void>();
+  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+
+  private itemMap = new Map<string, Item>();
+
+  constructor(private paths: PactPaths) {}
+
+  refresh() {
+    this._onDidChangeTreeData.fire();
+  }
+
+  reveal(file: string) {
+    const item = this.itemMap.get(file);
+    if (item) {
+      TREE.reveal(item, { select: true, focus: true });
+    }
+  }
+
+  getTreeItem(e: Item) {
+    return e;
+  }
+
+  getChildren(e?: Item): Thenable<Item[]> {
+    if (!e) return Promise.resolve(this.getNotebooks());
+    if (e.type === "notebook") return Promise.resolve(this.getFolders(e.name!));
+    if (e.type === "folder") return Promise.resolve(this.getFiles(e.path!));
+    return Promise.resolve([]);
+  }
+
+  private getNotebooks(): Item[] {
+    return fs.readdirSync(this.paths.notebooksRoot()).map(name => {
+      const i = new vscode.TreeItem(name, 1) as Item;
+      i.type = "notebook";
+      i.name = name;
+      return i;
     });
   }
 
-  pushState(): void {
-    if (this.view !== undefined) {
-      this.view.webview.postMessage({
-        command: "state",
-        data: this.notebookState.getState(),
+  private getFolders(name: string): Item[] {
+    const base = this.paths.notebook(name);
+
+    return [
+      this.makeFolder("prompts", path.join(base, "prompts")),
+      this.makeFolder("responses", path.join(base, "artifacts", "responses"))
+    ];
+  }
+
+  private makeFolder(label: string, p: string): Item {
+    const i = new vscode.TreeItem(label, 1) as Item;
+    i.type = "folder";
+    i.path = p;
+    return i;
+  }
+
+  private getFiles(folder: string): Item[] {
+    if (!fs.existsSync(folder)) return [];
+
+    return fs.readdirSync(folder)
+      .filter(f => f.endsWith(".json"))
+      .sort((a, b) => extractSeq(a) - extractSeq(b))
+      .map(name => {
+        const full = path.join(folder, name);
+
+        const item = new vscode.TreeItem(name) as Item;
+
+        item.command = {
+          command: "pact.openPrompt",
+          title: "Open",
+          arguments: [full]
+        };
+
+        this.itemMap.set(full, item);
+
+        return item;
       });
-    }
   }
 }
 
-export function activate(context: vscode.ExtensionContext): void {
-  const notebookState = new NotebookState();
-  const controlPanel = new ControlPanelProvider(context, notebookState);
-
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      "pact.controlPanel",
-      controlPanel,
-    ),
-  );
-
-  // Navigate cells
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      "pact.navigateCell",
-      async (direction: number) => {
-        const state = notebookState.getState();
-
-        if (!state.notebook) return;
-
-        const target = state.cell + direction;
-
-        if (target < 1 || target > state.totalCells) return;
-
-        const workspace = vscode.workspace.workspaceFolders?.[0];
-        if (!workspace) return;
-
-        const promptsPath = path.join(
-          workspace.uri.fsPath,
-          "notebooks",
-          state.notebook,
-          "artifacts",
-          "prompts",
-        );
-
-        if (!fs.existsSync(promptsPath)) return;
-
-        const files = fs
-          .readdirSync(promptsPath)
-          .filter((f) => f.endsWith(".json"))
-          .sort();
-
-        const targetFile = files[target - 1];
-        if (!targetFile) return;
-
-        const fileUri = vscode.Uri.file(path.join(promptsPath, targetFile));
-
-        const doc = await vscode.workspace.openTextDocument(fileUri);
-        await vscode.window.showTextDocument(doc);
-      },
-    ),
-  );
-
-  // Run Cell (Execution)
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("pact.runCell", async () => {
-      const state = notebookState.getState();
-      if (!state.notebook) return;
-
-      const workspace = vscode.workspace.workspaceFolders?.[0];
-      if (!workspace) return;
-
-      const promptsPath = path.join(
-        workspace.uri.fsPath,
-        "notebooks",
-        state.notebook,
-        "artifacts",
-        "prompts",
-      );
-
-      const responsesPath = path.join(
-        workspace.uri.fsPath,
-        "notebooks",
-        state.notebook,
-        "artifacts",
-        "responses",
-      );
-
-      if (!fs.existsSync(responsesPath)) {
-        fs.mkdirSync(responsesPath, { recursive: true });
-      }
-
-      const promptFiles = fs
-        .readdirSync(promptsPath)
-        .filter((f) => f.endsWith(".json"))
-        .sort();
-
-      const promptFile = promptFiles[state.cell - 1];
-      if (!promptFile) return;
-
-      const promptPath = path.join(promptsPath, promptFile);
-
-      const promptData = JSON.parse(fs.readFileSync(promptPath, "utf8"));
-
-      const promptText = promptData.text || "";
-
-      const response = {
-        cell_id: promptData.cell_id,
-        content: `Mock response to: "${promptText}"`,
-        timestamp: new Date().toISOString(),
-      };
-
-      const responseId = randomUUID();
-
-      const responsePath = path.join(responsesPath, `${responseId}.json`);
-
-      fs.writeFileSync(responsePath, JSON.stringify(response, null, 2));
-
-      const doc = await vscode.workspace.openTextDocument(responsePath);
-      await vscode.window.showTextDocument(doc);
-    }),
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("pact.runAll", async () => {
-      vscode.window.showInformationMessage("PACT: Run All");
-    }),
-  );
-
-  vscode.window.onDidChangeActiveTextEditor((editor) => {
-    if (editor !== undefined) {
-      updateNotebookState(editor, notebookState, controlPanel);
-    }
-  });
-
-  vscode.workspace.onDidOpenTextDocument(() => {
-    const editor = vscode.window.activeTextEditor;
-
-    if (editor !== undefined) {
-      updateNotebookState(editor, notebookState, controlPanel);
-    }
-  });
-
-  const editor = vscode.window.activeTextEditor;
-
-  if (editor !== undefined) {
-    updateNotebookState(editor, notebookState, controlPanel);
-  }
+interface Item extends vscode.TreeItem {
+  type?: "notebook" | "folder";
+  name?: string;
+  path?: string;
 }
 
-function updateNotebookState(
-  editor: vscode.TextEditor,
-  notebookState: NotebookState,
-  controlPanel: ControlPanelProvider,
-): void {
-  const filePath = editor.document.uri.fsPath;
+// ---------- CORE ----------
 
-  if (filePath.includes("artifacts")) {
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    if (!workspaceFolder) return;
+async function openPrompt(file: string) {
+  const json = JSON.parse(fs.readFileSync(file, "utf-8"));
 
-    const workspace = workspaceFolder.uri.fsPath;
-    const parts = filePath.split(path.sep);
-    const notebooksIndex = parts.indexOf("notebooks");
+  const text =
+    json.content?.map((c: any) => c.value).join("\n") ||
+    json.text ||
+    "";
 
-    if (notebooksIndex !== -1) {
-      const notebookName = parts[notebooksIndex + 1];
+  const seq = extractSeq(file);
 
-      notebookState.setActiveNotebook(notebookName);
+  const uri = vscode.Uri.parse(`pact:prompt-${pad(seq)}`);
 
-      const promptsPath = path.join(
-        workspace,
-        "notebooks",
-        notebookName,
-        "artifacts",
-        "prompts",
-      );
+  provider.setContent(text, uri);
 
-      if (fs.existsSync(promptsPath)) {
-        const files = fs
-          .readdirSync(promptsPath)
-          .filter((f) => f.endsWith(".json"))
-          .sort();
+  const doc = await vscode.workspace.openTextDocument(uri);
 
-        notebookState.setTotalCells(files.length);
+  await vscode.languages.setTextDocumentLanguage(doc, "markdown");
 
-        const openedFile = path.basename(filePath);
-        const index = files.indexOf(openedFile);
-
-        if (index !== -1) {
-          notebookState.setCurrentCell(index + 1);
-        }
-
-        controlPanel.pushState();
-      }
-    }
-  }
+  await vscode.window.showTextDocument(doc, { preview: true });
 }
 
-export function deactivate(): void {}
+async function openResponse(file: string) {
+  const json = JSON.parse(fs.readFileSync(file, "utf-8"));
+
+  const seq = extractSeq(file);
+
+  const uri = vscode.Uri.parse(`pact:response-${pad(seq)}`);
+
+  provider.setContent(json.text || "", uri);
+
+  const doc = await vscode.workspace.openTextDocument(uri);
+
+  await vscode.languages.setTextDocumentLanguage(doc, "markdown");
+
+  await vscode.window.showTextDocument(doc, { preview: true });
+}
+
+// ---------- HELPERS ----------
+
+function getNotebook(file: string) {
+  const parts = file.split(path.sep);
+  return parts[parts.indexOf("notebooks") + 1];
+}
+
+function getPromptList(paths: PactPaths, notebook: string) {
+  const dir = paths.prompts(notebook);
+  if (!fs.existsSync(dir)) return [];
+
+  return fs.readdirSync(dir)
+    .filter(f => f.startsWith("prompt-"))
+    .sort((a, b) => extractSeq(a) - extractSeq(b))
+    .map(f => path.join(dir, f));
+}
+
+function extractSeq(file: string): number {
+  const match = file.match(/(prompt|response)-(\d+)/);
+  return match ? parseInt(match[2], 10) : 0;
+}
+
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}

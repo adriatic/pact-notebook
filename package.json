@@ -1,47 +1,61 @@
 {
-  "name": "pact-notebook",
-  "displayName": "PACT Notebook",
-  "description": "PACT AI Notebook",
+  "name": "pact",
+  "displayName": "PACT",
+  "description": "PACT Notebook Environment",
   "version": "0.0.1",
   "publisher": "pact",
+
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [
-    "onStartupFinished",
-    "workspaceContains:**/notebooks",
-    "onCommand:pact.runCell"
-  ],
+
+  "categories": ["Other"],
+
   "main": "./out/extension.js",
+
   "contributes": {
-    "commands": [
-      {
-        "command": "pact.runCell",
-        "title": "PACT: Run Cell"
-      }
-    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pact",
+          "title": "PACT",
+          "icon": "media/pact.svg"
+        }
+      ]
+    },
+
     "views": {
-      "explorer": [
+      "pact": [
+        {
+          "id": "pactExplorer",
+          "name": "NOTEBOOKS",
+          "icon": "media/pact.svg"
+        },
         {
           "id": "pact.controlPanel",
-          "name": "PACT Control",
+          "name": "CONTROL",
           "type": "webview",
           "icon": "media/pact.svg"
         }
       ]
-    }
+    },
+
+    "commands": [
+      {
+        "command": "pact.copyPrompt",
+        "title": "Copy Prompt"
+      }
+    ]
   },
+
   "scripts": {
-    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./"
   },
+
   "devDependencies": {
-    "@types/node": "^18.18.0",
+    "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
-    "typescript": "^5.3.0"
+    "typescript": "^5.0.0"
   }
 }

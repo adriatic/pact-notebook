@@ -1,82 +1,32 @@
 body {
-  font-family: var(--vscode-font-family);
-  color: var(--vscode-foreground);
+  font-family: sans-serif;
   padding: 10px;
-  margin: 0;
 }
 
-.panel {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+table {
+  width: 100%;
 }
 
-.title {
-  font-size: 18px;
-  font-weight: 600;
+td {
+  vertical-align: middle;
 }
 
-/* notebook name line */
-
-.notebookName {
-  font-size: 14px;
+button {
+  height: 32px;
+  margin-right: 6px;
 }
 
-/* cell navigation line */
-
-.navigator {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 4px;
-}
-
-#cellLabel {
-  font-size: 14px;
-}
-
-/* arrow buttons */
-
-.navButtons {
-  display: flex;
-  gap: 6px;
-}
-
-.navButtons button {
-  width: 30px;
-  height: 26px;
-}
-
-/* status */
-
-.status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.dot {
+.led {
+  display: inline-block;
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: #4caf50;
 }
 
-.dot.running {
-  background-color: orange;
+.green {
+  background: #2ecc71;
 }
 
-/* action buttons */
-
-.buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.buttons button {
-  height: 36px;
-  white-space: nowrap;
+.red {
+  background: #e74c3c;
 }

@@ -69,3 +69,95 @@ You can author your README using Visual Studio Code. Here are some useful editor
 * [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
 
 **Enjoy!**
+
+## Creating a PACT Notebook Workspace
+
+PACT notebooks operate on a simple filesystem structure.  
+Before running the extension, a minimal workspace must exist.
+
+PACT expects the following directory layout inside the VSCode workspace:
+
+
+notebooks/
+notebook-1/
+artifacts/
+prompts/
+responses/
+proposals/
+
+
+### 1. Create the notebook structure
+
+Create the directories:
+
+```bash
+mkdir -p notebooks/notebook-1/artifacts/prompts
+mkdir -p notebooks/notebook-1/artifacts/responses
+mkdir -p notebooks/notebook-1/artifacts/proposals
+2. Create the notebook descriptor
+
+Create:
+
+notebooks/notebook-1/notebook.pnb
+
+Example content:
+
+{
+  "name": "notebook-1",
+  "created": "2026-03-01T00:00:00Z"
+}
+
+This file identifies the directory as a PACT notebook.
+
+3. Create the first prompt cell
+
+Create a JSON file inside:
+
+notebooks/notebook-1/artifacts/prompts/
+
+Example:
+
+0001.json
+
+Content:
+
+{
+  "cell_id": "0001",
+  "text": "What is the second tallest mountain in the world?",
+  "timestamp": "2026-03-01T00:00:00Z"
+}
+4. Open the prompt in VSCode
+
+Open the file:
+
+notebooks/notebook-1/artifacts/prompts/0001.json
+
+PACT Control will now display:
+
+notebook-1
+Cell 1 / 1
+5. Run the cell
+
+Press:
+
+Run Cell
+
+PACT will create a response artifact inside:
+
+notebooks/notebook-1/artifacts/responses/
+
+Each execution produces a new response file.
+
+Summary
+
+A minimal PACT notebook requires:
+
+notebooks/
+  notebook-1/
+    notebook.pnb
+    artifacts/
+      prompts/
+      responses/
+      proposals/
+
+Once this structure exists, PACT can execute notebook cells.

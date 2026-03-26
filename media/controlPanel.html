@@ -1,40 +1,40 @@
 <!doctype html>
-<html lang="en">
+<html>
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <link rel="stylesheet" href="{{css}}" />
-    <title>PACT Control</title>
   </head>
 
   <body>
-    <div class="panel">
-      <div class="title">PACT Control</div>
+    <h2>PACT Control</h2>
 
-      <div id="notebookName" class="notebookName"></div>
+    <div id="notebook">-</div>
 
-      <div class="navigator">
-        <div id="cellLabel">Cell 1 / 1</div>
+    <table>
+      <tr>
+        <td><b>Cell</b></td>
 
-        <div class="navButtons">
-          <button id="prevCell">←</button>
-          <button id="nextCell">→</button>
-        </div>
-      </div>
+        <td id="cell">1 / 1</td>
 
-      <div class="status">
-        <span id="statusDot" class="dot"></span>
-        <span id="statusText">Ready</span>
-      </div>
+        <td style="text-align: right">
+          <button id="prev">←</button>
+          <button id="next">→</button>
+        </td>
+      </tr>
 
-      <div class="buttons">
-        <button id="runCell">Run Cell</button>
-        <button id="runAll">Run All</button>
-        <button id="clearOutput">Clear Output</button>
-        <button id="showLedger">Ledger</button>
-      </div>
-    </div>
+      <tr>
+        <td colspan="3" style="padding-top: 10px; text-align: right">
+          <button id="create">Create Prompt</button>
+          <button id="run">Run Prompt</button>
+        </td>
+      </tr>
+
+      <tr>
+        <td span id="led" class="led green"></td>
+          <span id="statusLabel">Idle</span>
+        </td>
+      </tr>
+    </table>
 
     <script src="{{js}}"></script>
   </body>
