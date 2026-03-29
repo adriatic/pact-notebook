@@ -4,55 +4,28 @@
   "description": "PACT Notebook Environment",
   "version": "0.0.1",
   "publisher": "pact",
-
   "engines": {
     "vscode": "^1.85.0"
   },
-
-  "categories": ["Other"],
-
+  "categories": [
+    "Other"
+  ],
   "main": "./out/extension.js",
-
+  
   "contributes": {
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "pact",
-          "title": "PACT",
-          "icon": "media/pact.svg"
-        }
-      ]
-    },
-
-    "views": {
-      "pact": [
-        {
-          "id": "pactExplorer",
-          "name": "NOTEBOOKS",
-          "icon": "media/pact.svg"
-        },
-        {
-          "id": "pact.controlPanel",
-          "name": "CONTROL",
-          "type": "webview",
-          "icon": "media/pact.svg"
-        }
-      ]
-    },
-
     "commands": [
       {
-        "command": "pact.copyPrompt",
-        "title": "Copy Prompt"
+        "command": "pact.open",
+        "title": "PACT: Open"
       }
     ]
   },
 
   "scripts": {
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "compile": "tsc -p tsconfig.json && tsc -p tsconfig.ui.json",
+    "watch": "tsc -w -p tsconfig.json",
+    "watch:ui": "tsc -w -p tsconfig.ui.json"
   },
-
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
